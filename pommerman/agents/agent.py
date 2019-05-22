@@ -12,13 +12,13 @@ from .. import constants
 from .. import utility
 
 
-class SimpleAgent(BaseAgent):
+class Agent(BaseAgent):
     """This is a baseline agent. After you can beat it, submit your agent to
     compete.
     """
 
     def __init__(self, *args, **kwargs):
-        super(SimpleAgent, self).__init__(*args, **kwargs)
+        super(Agent, self).__init__(*args, **kwargs)
 
         # Keep track of recently visited uninteresting positions so that we
         # don't keep visiting the same places.
@@ -47,6 +47,7 @@ class SimpleAgent(BaseAgent):
         blast_strength = int(obs['blast_strength'])
         items, dist, prev = self._djikstra(
             board, my_position, bombs, enemies, depth=10)
+        print(items)
 
         # Move if we are in an unsafe place.
         unsafe_directions = self._directions_in_range_of_bomb(

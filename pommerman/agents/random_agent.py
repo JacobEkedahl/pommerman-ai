@@ -19,8 +19,6 @@ class Node():
     self.children = children
 
   def tick(self):
-    #print self.func
-    #print self.typ
     self.status=RUNNING
     if self.typ==FALLBACK:
       self.fallBack()
@@ -36,7 +34,6 @@ class Node():
   def fallBack(self):
     for child in self.children:
       child.tick()
-      #print child.status
       if child.status==SUCCSESS:
         self.status=SUCCSESS
         return
@@ -46,7 +43,6 @@ class Node():
   def sequence(self):
     for child in self.children:
       child.tick()
-      #print child.status
       if child.status==FAIL:
         self.status=FAIL
         return
@@ -62,5 +58,7 @@ class RandomAgent(BaseAgent):
         #print(action_space.sample())
         #print(obs['board'])
         #print(obs['bomb_blast_strength'])
-        print(obs['enemies'])
+        #print(obs['enemies'])
+        #print(obs['ammo'])
+        print(obs['blast_strength'])
         return action_space.sample()

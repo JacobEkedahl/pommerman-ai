@@ -28,6 +28,7 @@ class SimpleAgent(BaseAgent):
         self._prev_direction = None
 
     def act(self, obs, action_space):
+
         def convert_bombs(bomb_map):
             '''Flatten outs the bomb array'''
             ret = []

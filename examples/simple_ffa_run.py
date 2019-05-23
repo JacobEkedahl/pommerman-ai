@@ -15,7 +15,7 @@ def main():
         agents.SimpleAgent(),
 	agents.SimpleAgent(),
 #        agents.PlayerAgent(agent_control="wasd"),
-        agents.RandomAgent(),
+        agents.SimpleAgent(),
 	agents.RandomAgent(),
 #        agents.DockerAgent("docker-agent", port=12345),
     ]

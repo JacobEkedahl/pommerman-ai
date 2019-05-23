@@ -13,11 +13,9 @@ def main():
     # Create a set of agents (exactly four)
     agent_list = [
         agents.SimpleAgent(),
-	agents.SimpleAgent(),
-#        agents.PlayerAgent(agent_control="wasd"),
         agents.SimpleAgent(),
-	agents.RandomAgent(),
-#        agents.DockerAgent("docker-agent", port=12345),
+        agents.RandomAgent(),
+        agents.RandomAgent(),
     ]
     # Make the "Free-For-All" environment using the agent list
     env = pommerman.make('PommeRadio-v2', agent_list)

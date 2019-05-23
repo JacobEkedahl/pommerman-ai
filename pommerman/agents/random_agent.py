@@ -1,5 +1,12 @@
 '''An agent that preforms a random action each step'''
 from . import BaseAgent
+from collections import defaultdict
+import queue
+import random
+
+import numpy as np
+from .. import constants
+from .. import utility
 
 STOP = 0
 UP = 1
@@ -7,10 +14,247 @@ DOWN = 2
 LEFT = 3
 RIGHT = 4
 BOMB = 5
+RANGE = 4
 
-##########
+class RandomAgent(BaseAgent):
+    """The Random Agent that returns random actions given an action_space."""
+    def __init__(self, *args, **kwargs):
+        super(RandomAgent, self).__init__(*args, **kwargs)
+        self.bombs = None
+        self.root = Node(typ = FALLBACK)
+        self.action = STOP
+        self.buildTree()
+
+    def act(self, obs, action_space):
+        self.collectObs(obs)
+        self.root.tick()
+        valid_positions = self.getValidPositions()
+        #print(self.dist) #distance from us to any position
+        print(self.bombs)
+        for b in self.bombs:
+            print(b['position'],b['blast_strength'])
+        #print(self.items.get(constants.Item.Wood)) #get position of a square
+        print(self.blast_strength) 
+        return self.action
+
+    ##########
+  	# Build  #
+  	##########
+    def buildTree(self):
+        self.root.children = [Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(func = self.right)]
+        self.root.children[0].children =[Node(func = self.false), Node(func = self.stop)]
+        self.root.children[1].children =[Node(func = self.true), Node(func = self.goNearestWall)]
+
+  	##############
+  	# Tree Funcs #
+  	##############
+  	def bombIsNear(self):
+  		if self.bombs == []:
+  			return False
+  		else:
+  			return True
+
+    def avoideBomb(self):
+    	deadlyPositions = []
+    	for bomb in self.bombs:
+    		for i in range(0,bomb['blast_strength']):
+    			x,y = bomb['position']
+    			deadlyPositions.append((x+i,y))
+    			deadlyPositions.append((x-i,y))
+    			deadlyPositions.append((x,y+i))
+    			deadlyPositions.append((x,y-i))
+        return True
+
+    def placeBomb(self):
+        self.action = BOMB
+        return True
+
+    def goNearestWall(self):
+        currentWall = None
+        currentDist = 99
+        for wall in self.items.get(constants.Item.Wood):
+            thisDist = self._distance(wall,self.my_position)
+            if thisDist < currentDist:
+                currentDist = thisDist
+                currentWall = wall
+        if currentWall == None:
+            return False
+        self.goTo(currentWall)
+        return True
+
+    def goTo(self,point):
+        currentDist = self._distance(self.my_position,point)
+        actions = self.getValidPositions()
+        for action in actions:
+            nextPosition = utility.get_next_position(self.my_position, action)
+            thisDist = self._distance(nextPosition,point)
+            if thisDist < currentDist:
+                currentDist = thisDist
+                self.action = action.value
+
+    def true(self):
+        return True
+    def false(self):
+        return False
+    def stop(self):
+        self.action=STOP
+        return True
+    def left(self):
+        self.action=LEFT
+        return True
+    def right(self):
+        self.action=RIGHT
+
+    ################
+    # Helper funcs #
+    ################
+
+    def collectObs(self, obs):
+        self.obs = obs
+        self.my_position = tuple(obs['position'])
+        self.board = np.array(obs['board'])
+        self.bombs = self.convert_bombs(np.array(obs['bomb_blast_strength']))
+        self.enemies = [constants.Item(e) for e in obs['enemies']]
+        self.ammo = int(obs['ammo'])
+        self.blast_strength = int(obs['blast_strength'])
+        self.items, self.dist, self.prev = self._djikstra(
+            self.board, self.my_position, self.bombs, self.enemies, depth=10)
+        return
+
+    def convert_bombs(self, bomb_map):
+        '''Flatten outs the bomb array'''
+        ret = []
+
+        '''Add previous bombs if life_left is above 0 and if the bomb is out of our obs range'''
+        if self.bombs is not None:
+          for bomb in self.bombs:
+            if self._out_of_range(bomb['position'], self.my_position, 4):
+              bomb['life_left'] -= 1
+              if bomb['life_left'] > 0:
+                print("bomb out range ", bomb)
+                ret.append(bomb)
+          
+        locations = np.where(bomb_map > 0)
+        for r, c in zip(locations[0], locations[1]):
+            ret.append({
+                'position': (r, c),
+                'blast_strength': int(bomb_map[(r, c)]),
+                'life_left': int(self.obs['bomb_life'][(r,c)])
+            })
+        return ret
+
+    def getValidPositions(self):
+      # Choose a random but valid direction.
+        directions = [
+            constants.Action.Stop, constants.Action.Left,
+            constants.Action.Right, constants.Action.Up, constants.Action.Down
+        ]
+        valid_directions = self._filter_invalid_directions(
+            self.board,self.my_position, directions, self.enemies)
+        return valid_directions
+
+
+    ###############
+    # Static func #
+    ###############
+
+    @staticmethod
+    def _distance(p_1,p_2):
+        x_1, y_1 = p_1
+        x_2, y_2 = p_2
+        return abs(x_1 - x_2) + abs(y_1 - y_2)
+
+    @staticmethod
+    def _out_of_range(p_1, p_2, depth):
+        '''Determines if two points are out of rang of each other'''
+        x_1, y_1 = p_1
+        x_2, y_2 = p_2
+        return abs(y_2 - y_1) > depth or abs(x_2 - x_1) > depth
+
+    @staticmethod
+    def _filter_invalid_directions(board, my_position, directions, enemies):
+        ret = []
+        for direction in directions:
+            position = utility.get_next_position(my_position, direction)
+            if utility.position_on_board(
+                    board, position) and utility.position_is_passable(
+                        board, position, enemies):
+                ret.append(direction)
+        return ret
+
+
+    @staticmethod
+    def _djikstra(board, my_position, bombs, enemies, depth=None, exclude=None):
+        assert (depth is not None)
+
+        if exclude is None:
+            exclude = [
+                constants.Item.Fog, constants.Item.Rigid, constants.Item.Flames
+            ]
+
+        def out_of_range(p_1, p_2):
+            '''Determines if two points are out of rang of each other'''
+            x_1, y_1 = p_1
+            x_2, y_2 = p_2
+            return abs(y_2 - y_1) + abs(x_2 - x_1) > depth
+
+        items = defaultdict(list)
+        dist = {}
+        prev = {}
+        Q = queue.Queue()
+
+        my_x, my_y = my_position
+        for r in range(max(0, my_x - depth), min(len(board), my_x + depth)):
+            for c in range(max(0, my_y - depth), min(len(board), my_y + depth)):
+                position = (r, c)
+                if any([
+                        out_of_range(my_position, position),
+                        utility.position_in_items(board, position, exclude),
+                ]):
+                    continue
+
+                prev[position] = None
+                item = constants.Item(board[position])
+                items[item].append(position)
+                
+                if position == my_position:
+                    Q.put(position)
+                    dist[position] = 0
+                else:
+                    dist[position] = np.inf
+
+
+        for bomb in bombs:
+            if bomb['position'] == my_position:
+                items[constants.Item.Bomb].append(my_position)
+
+        while not Q.empty():
+            position = Q.get()
+
+            if utility.position_is_passable(board, position, enemies):
+                x, y = position
+                val = dist[(x, y)] + 1
+                for row, col in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    new_position = (row + x, col + y)
+                    if new_position not in dist:
+                        continue
+
+                    if val < dist[new_position]:
+                        dist[new_position] = val
+                        prev[new_position] = position
+                        Q.put(new_position)
+                    elif (val == dist[new_position] and random.random() < .5):
+                        dist[new_position] = val
+                        prev[new_position] = position   
+
+
+        return items, dist, prev
+
+
+############################################################################
 # B-tree #
 ##########
+
 SUCCSESS = "SUCCSESS"
 RUNNING = "RUNNING"
 FAIL = "FAIL"
@@ -56,46 +300,3 @@ class Node():
     return
 
 
-class RandomAgent(BaseAgent):
-    """The Random Agent that returns random actions given an action_space."""
-
-    def act(self, obs, action_space):
-        #print(action_space)
-        #print(obs['board'])
-        #print(obs['bomb_blast_strength'])
-        print(obs['enemies'])
-        #print(obs['ammo'])
-        #print(obs['blast_strength'])
-        #my_position = tuple(obs['position'])
-        self.root = Node(typ = FALLBACK)
-        self.buildTree()
-        self.root.tick()
-        return self.action
-
-    ##########
-	# Build  #
-	##########
-    def buildTree(self):
-        #self.root = Node(typ = FALLBACK)
-        self.root.children = [Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(func = self.right)]
-
-        self.root.children[0].children =[Node(func = self.false), Node(func = self.stop)]
-        self.root.children[1].children =[Node(func = self.true), Node(func = self.left)]
-
-
-	##########
-	# Funcs  #
-	##########
-
-    def true(self):
-        return True
-    def false(self):
-        return False
-    def stop(self):
-        self.action=STOP
-        return True
-    def left(self):
-        self.action=LEFT
-        return True
-    def right(self):
-        self.action=RIGHT

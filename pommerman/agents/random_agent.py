@@ -63,13 +63,14 @@ class RandomAgent(BaseAgent):
         #print(action_space)
         #print(obs['board'])
         #print(obs['bomb_blast_strength'])
-        #print(obs['enemies'])
+        print(obs['enemies'])
         #print(obs['ammo'])
         #print(obs['blast_strength'])
+        #my_position = tuple(obs['position'])
         self.root = Node(typ = FALLBACK)
         self.buildTree()
         self.root.tick()
-        return self.action#LEFT#action_space.sample()
+        return self.action
 
     ##########
 	# Build  #

@@ -29,10 +29,7 @@ class RandomAgent(BaseAgent):
         self.collectObs(obs)
         #print(self.bombs)
         #print(self.dist)
-        #for bomb in self.bombs:
-        #  print(self.dist[(bomb['position'])])
         #print(self.items.get(constants.Item.Wood)) #get position of a square
-        #print(self.blast_strength) 
         self.root.tick()
         return self.action#random.choice(validDir).value
 
@@ -40,21 +37,28 @@ class RandomAgent(BaseAgent):
   	# Build  #
   	##########
     def buildTree(self):
-        self.root.children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(func = self.right)]
-        self.root.children[0].children =[Node(func = self.isValidPosition), Node(func = self.goToClosestValid)]
-        self.root.children[1].children =[Node(func = self.false), Node(func = self.stop)]
+        self.root.children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE),Node(typ = SEQUENCE)]
+        self.root.children[0].children =[Node(func = self.isInvalidPosition), Node(func = self.goToClosestValid)]
+        self.root.children[1].children =[Node(func = self.isCloseToWall), Node(func = self.placeBomb)]
         self.root.children[2].children =[Node(func = self.true), Node(func = self.goNearestWall)]
 
   	##############
   	# Tree Funcs #
   	##############
 
+    def isCloseToWall(self):
+        for wall in self.items.get(constants.Item.Wood):
+            if self._distance(wall,self.my_position) == 1:
+                return True
+        return False
+
+
     #check if we are in a position where a bomb can hit us
-    def isValidPosition(self):
+    def isInvalidPosition(self):
         invalidPos = self.getInValidPositions()
         if self.my_position in invalidPos:
-          return False
-        return True
+          return True
+        return False
 
     #go to closest safe position
     def goToClosestValid(self):
@@ -76,7 +80,7 @@ class RandomAgent(BaseAgent):
         currentDist = 99
         for wall in self.items.get(constants.Item.Wood):
             thisDist = self._distance(wall,self.my_position)
-            if thisDist < currentDist:
+            if thisDist < currentDist and wall not in(self.getInValidPositions()):
                 currentDist = thisDist
                 currentWall = wall
         if currentWall == None:
@@ -114,9 +118,12 @@ class RandomAgent(BaseAgent):
         return
 
     def goTo(self,point):
-        currentDist = self._distance(self.my_position,point)
-        actions = self.getValidDirections()
+        currentDist = 99
+        actions = self.getValidDirections(self.my_position)
         for action in actions:
+            if action.value == 0 and self.my_position != point:
+                self.action = action.value
+                continue
             nextPosition = utility.get_next_position(self.my_position, action)
             thisDist = self._distance(nextPosition,point)
             if thisDist < currentDist:
@@ -145,13 +152,13 @@ class RandomAgent(BaseAgent):
             })
         return ret
 
-    def getValidDirections(self):
+    def getValidDirections(self,pos):
         directions = [
             constants.Action.Stop, constants.Action.Left,
             constants.Action.Right, constants.Action.Up, constants.Action.Down
         ]
         valid_directions = self._filter_invalid_directions(
-            self.board,self.my_position, directions, self.enemies)
+            self.board,pos, directions, self.enemies)
         return valid_directions
 
     def getClosestValid(self):

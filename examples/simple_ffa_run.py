@@ -14,7 +14,7 @@ def main():
     agent_list = [
         agents.SimpleAgent(),
         agents.SimpleAgent(),
-        agents.SimpleAgent(),
+        agents.PlayerAgent(agent_control='arrows'),
         agents.RandomAgent(),
     ]
     # Make the "Free-For-All" environment using the agent list

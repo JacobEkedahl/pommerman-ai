@@ -5,7 +5,7 @@ tensorforce agent. The script will start separate threads to operate the agents
 and then report back the result.
 
 An example with all three simple agents running ffa:
-python train_with_tensorforce.py \
+python3 train_with_tensorforce.py \
  --agents=tensorforce::ppo,test::agents.SimpleAgent,test::agents.SimpleAgent,test::agents.SimpleAgent \
  --config=PommeFFACompetition-v0
 """

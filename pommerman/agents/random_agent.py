@@ -23,10 +23,12 @@ class RandomAgent(BaseAgent):
         self.bombs = None
         self.root = Node(typ = FALLBACK)
         self.action = STOP
+        self.my_bombs = []
         self.buildTree()
 
     def act(self, obs, action_space):
         self.collectObs(obs)
+        print(self.my_bombs)
         self.root.tick()
         return self.action
 
@@ -43,15 +45,18 @@ class RandomAgent(BaseAgent):
         self.root.children[1].children[1].children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE), Node(typ=SEQUENCE)]
 
         self.root.children[1].children[1].children[0].children = [Node(func = self.powerUpNear), Node(func = self.goNearestPowerUp)]
-        self.root.children[1].children[1].children[1].children = [Node(func = self.isCloseToWall), Node(func = self.placeBomb)]
+        self.root.children[1].children[1].children[1].children = [Node(func = self.isCloseToWall), Node(func = self.canPlaceBombs), Node(func = self.placeBomb)]
         self.root.children[1].children[1].children[2].children = [Node(func = self.goNearestWall)]
 
   	##############
   	# Tree Funcs #
   	##############
 
+    def canPlaceBombs(self):
+        return len(self.my_bombs) < self.ammo
+
     def random(self):
-        print("RANDOM")
+        #print("RANDOM")
         self.action = random.choice(self.getValidDirections()).value
         return True
 
@@ -66,12 +71,12 @@ class RandomAgent(BaseAgent):
         return True
 
     def goNearEnemy(self):
-        print("goNearEnemy")
+        #print("goNearEnemy")
         for enemie in self.enemies:
             pos = self.items.get(enemie)
             if pos != None:
                 self.goTo(pos[0])
-                print(pos[0],self.my_position)
+                #print(pos[0],self.my_position)
         return True
     
     def needsPowerUp(self):
@@ -92,7 +97,7 @@ class RandomAgent(BaseAgent):
         return True
 
     def goNearestPowerUp(self):
-        print("goNearestPowerUp")
+        #print("goNearestPowerUp")
         powerUps=[]
         extraBomb = self.items.get(constants.Item.ExtraBomb)
         incrRange = self.items.get(constants.Item.IncrRange)
@@ -140,17 +145,18 @@ class RandomAgent(BaseAgent):
 
     #go to closest safe position
     def goToClosestValid(self):
-        print("goToClosestValid")
+        #print("goToClosestValid")
         self.goTo(self.getClosestValid())
         return True
 
     def placeBomb(self):
         print("placeBomb")
         self.action = BOMB
+        self.addBomb()
         return True
 
     def goNearestWall(self):
-        print("goNearestWall")
+        #print("goNearestWall")
         currentWall = None
         currentDist = 99
         walls = self.items.get(constants.Item.Wood)
@@ -180,7 +186,19 @@ class RandomAgent(BaseAgent):
         self.blast_strength = int(obs['blast_strength'])
         self.items, self.dist, self.prev = self._djikstra(
             self.board, self.my_position, self.bombs, self.enemies, depth=10)
+        self.updateMyBombs()
         return
+
+    def addBomb(self):
+        self.my_bombs.append({
+          'life_left': constants.DEFAULT_BOMB_LIFE
+        })
+
+    def updateMyBombs(self):
+        for bomb in self.my_bombs:
+          bomb['life_left'] -= 1
+          if bomb['life_left'] == 0:
+            self.my_bombs.remove(bomb)
 
     def goTo(self,point):
         currentDist = 99
@@ -268,6 +286,11 @@ class RandomAgent(BaseAgent):
     ###############
     # Static func #
     ###############
+
+
+    @staticmethod
+    def _has_bomb(obs):
+        return obs['ammo'] >= 1
 
     @staticmethod
     def _distance(p_1,p_2):

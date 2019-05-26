@@ -33,21 +33,25 @@ class RandomAgent(BaseAgent):
         self.collectObs(obs) #has to before tick
         self.root.tick()
         self.updateVisited() #has to be after tick
-        #print(self.action)
+        print(self.canKick())
         return self.action
 
     ##########
   	# Build  #
   	##########
     def buildTree(self):
-        self.root.children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(typ = SEQUENCE)]
-        self.root.children[0].children = [Node(func = self.isInvalidPosition), Node(func = self.goToSafestValid)]
-        self.root.children[1].children = [Node(func = self.needsPowerUp), Node(typ = FALLBACK)]
-        self.root.children[2].children = [Node(func = self.observingEnemy) , Node(func=self.goNearEnemy)]
-        self.root.children[3].children = [Node(func = self.random)]
+        self.root.children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(typ = SEQUENCE)]
 
+        self.root.children[0].children = [Node(func = self.isInvalidPosition), Node(typ = FALLBACK)]
+        self.root.children[1].children = [Node(func = self.needsPowerUp), Node(typ = FALLBACK)]
+        self.root.children[2].children = [Node(func = self.isNearToEnemy), Node(func = self.canPlaceBombs), Node(func = self.placeBomb)]
+        self.root.children[3].children = [Node(func = self.observingEnemy) , Node(func=self.goNearEnemy)]
+        self.root.children[4].children = [Node(func = self.random)]
+
+        self.root.children[0].children[1].children = [Node(func = self.goToSafestValid), Node(typ = SEQUENCE)]
         self.root.children[1].children[1].children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE), Node(typ=SEQUENCE)]
 
+        self.root.children[0].children[1].children[1].children = [Node(func = self.canKick), Node(func = self.kickBomb)]
         self.root.children[1].children[1].children[0].children = [Node(func = self.powerUpNearAndReachable), Node(func = self.goNearestPowerUp)]
         self.root.children[1].children[1].children[1].children = [Node(func = self.isCloseToWall), Node(func = self.canPlaceBombs), Node(func = self.placeBomb)]
         self.root.children[1].children[1].children[2].children = [Node(func = self.goNearestWall)]
@@ -55,6 +59,28 @@ class RandomAgent(BaseAgent):
   	##############
   	# Tree Funcs #
   	##############
+
+    #simple and bad attack
+    def isNearToEnemy(self):
+        for enemie in self.enemies:
+            pos = self.items.get(enemie)
+            if pos == None:
+                continue
+            if self.dist[pos[0]] <= 2:
+                return True
+        return False
+
+    def kickBomb(self):
+        print("kickBomb")
+        for bomb in self.bombs:
+            self.goTo(bomb['position'])
+            if self.action == STOP:
+                for action in constants.Action:
+                    if action.value == 5:
+                        continue
+                    if bomb['position'] == utility.get_next_position(self.my_position, action):
+                        self.action = action.value
+        return True
 
     def canPlaceBombs(self):
         print("can place: ", self.ammo - len(self.my_bombs))
@@ -73,8 +99,6 @@ class RandomAgent(BaseAgent):
                 positions.append(pos[0])
         if positions == []:
             return False
-
-        print(positions)
         return True
 
     def canKick(self):
@@ -152,7 +176,10 @@ class RandomAgent(BaseAgent):
     #go to closest safe position
     def goToSafestValid(self):
         print("goToSafestValid")
-        self.goTo(self.getSafestValid())
+        point = self.getSafestValid()
+        self.goTo(point)
+        if point == None:
+            return False
         return True
 
     def placeBomb(self):
@@ -170,7 +197,7 @@ class RandomAgent(BaseAgent):
             return False
         for wall in walls:
             thisDist = self._distance(wall,self.my_position)
-            if thisDist < currentDist:
+            if thisDist < currentDist and (self.dist[wall]) != np.inf:
                 currentDist = thisDist
                 currentWall = wall
         if currentWall == None:
@@ -279,7 +306,7 @@ class RandomAgent(BaseAgent):
           if thisDist < closestDist:
             closestDist = thisDist
             closestPos = position
-        print("clostestPos: ", closestPos, " my pos: ", self.my_position)
+        #print("clostestPos: ", closestPos, " my pos: ", self.my_position)
         return closestPos
 
     def getValidPositions(self):

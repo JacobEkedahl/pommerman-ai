@@ -33,12 +33,13 @@ class RandomAgent(BaseAgent):
         self.collectObs(obs) #has to before tick
         self.root.tick()
         self.updateVisited() #has to be after tick
-        print(self.canKick())
+        #print(self.canKick())
+        #print(self.prev)
         return self.action
 
     ##########
-  	# Build  #
-  	##########
+    # Build  #
+    ##########
     def buildTree(self):
         self.root.children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(typ = SEQUENCE),Node(typ = SEQUENCE)]
 
@@ -49,16 +50,16 @@ class RandomAgent(BaseAgent):
         self.root.children[4].children = [Node(func = self.random)]
 
         self.root.children[0].children[1].children = [Node(func = self.goToSafestValid), Node(typ = SEQUENCE)]
-        self.root.children[1].children[1].children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE), Node(typ=SEQUENCE)]
-
         self.root.children[0].children[1].children[1].children = [Node(func = self.canKick), Node(func = self.kickBomb)]
+
+        self.root.children[1].children[1].children = [Node(typ = SEQUENCE), Node(typ = SEQUENCE), Node(typ=SEQUENCE)]
         self.root.children[1].children[1].children[0].children = [Node(func = self.powerUpNearAndReachable), Node(func = self.goNearestPowerUp)]
         self.root.children[1].children[1].children[1].children = [Node(func = self.isCloseToWall), Node(func = self.canPlaceBombs), Node(func = self.placeBomb)]
         self.root.children[1].children[1].children[2].children = [Node(func = self.goNearestWall)]
 
-  	##############
-  	# Tree Funcs #
-  	##############
+    ##############
+    # Tree Funcs #
+    ##############
 
     #simple and bad attack
     def isNearToEnemy(self):
@@ -71,7 +72,7 @@ class RandomAgent(BaseAgent):
         return False
 
     def kickBomb(self):
-        print("kickBomb")
+        #print("kickBomb")
         for bomb in self.bombs:
             self.goTo(bomb['position'])
             if self.action == STOP:
@@ -83,11 +84,11 @@ class RandomAgent(BaseAgent):
         return True
 
     def canPlaceBombs(self):
-        print("can place: ", self.ammo - len(self.my_bombs))
+        #print("can place: ", self.ammo - len(self.my_bombs))
         return len(self.my_bombs) < self.ammo
 
     def random(self):
-        print("RANDOM")
+        #print("RANDOM")
         self.action = random.choice(self.getValidDirections(self.my_position)).value
         return True
 
@@ -105,7 +106,7 @@ class RandomAgent(BaseAgent):
         return self.obs['can_kick']
 
     def goNearEnemy(self):
-        print("goNearEnemy")
+        #print("goNearEnemy")
         for enemie in self.enemies:
             pos = self.items.get(enemie)
             if pos != None:
@@ -151,7 +152,7 @@ class RandomAgent(BaseAgent):
             return False
 
     def goNearestPowerUp(self):
-        print("goNearestPowerUp")
+        #print("goNearestPowerUp")
         self.goTo(self.target_powerup)
         return True
 
@@ -175,21 +176,21 @@ class RandomAgent(BaseAgent):
 
     #go to closest safe position
     def goToSafestValid(self):
-        print("goToSafestValid")
+        #print("goToSafestValid")
         point = self.getSafestValid()
-        self.goTo(point)
+        self.escape(point)
         if point == None:
             return False
         return True
 
     def placeBomb(self):
-        print("placeBomb")
+        #print("placeBomb")
         self.action = BOMB
         self.addBomb()
         return True
 
     def goNearestWall(self):
-        print("goNearestWall")
+        #print("goNearestWall")
         currentWall = None
         currentDist = 99
         walls = self.items.get(constants.Item.Wood)
@@ -218,9 +219,34 @@ class RandomAgent(BaseAgent):
         self.ammo = int(obs['ammo'])
         self.blast_strength = int(obs['blast_strength'])
         self.items, self.dist, self.prev = self._djikstra(
-            self.board, self.my_position, self.bombs, self.enemies, depth=10)
+            self.board, self.my_position, self.bombs, self.enemies, self.obs['can_kick'], depth=10)
         self.updateMyBombs()
         return
+
+    def getNextPositionToTarget(self, position):
+        target_pos = None
+
+        if self.dist[position] == np.inf:
+            print("this pos not in dist: ", position)
+            closestDist = 99
+            for pos in self.dist:
+                dist = self._distance(pos, position)
+                if dist < closestDist:
+                    closestDist = dist
+                    target_pos = pos
+        else:
+            target_pos = position
+
+
+        print(target_pos, " prev:", self.prev[target_pos])
+
+        res = None
+        while target_pos != self.my_position:
+            if target_pos != self.my_position:
+                res = target_pos
+            target_pos = self.prev[target_pos]
+
+        return res
 
     def setTargetPowerUp(self, targets):
         currentDist = 99
@@ -250,19 +276,18 @@ class RandomAgent(BaseAgent):
             self.my_bombs.remove(bomb)
 
     def goTo(self,point):
-        currentDist = 99
-        actions = self.getValidDirections(self.my_position)
-        for action in actions:
-            if action.value == 0:
-                self.action = action.value
-                continue
-            nextPosition = utility.get_next_position(self.my_position, action)
-            if nextPosition in self.getInValidPositions(self.bombs) and self.my_position not in self.getInValidPositions(self.bombs):
-            	continue
-            thisDist = self._distance(nextPosition,point)
-            if thisDist < currentDist:
-                currentDist = thisDist
-                self.action = action.value
+        nextPos = self.getNextPositionToTarget(point)
+        if nextPos in self.getInValidPositions(self.bombs):
+            self.action = STOP
+            return
+        nextMove = utility.get_direction(self.my_position, nextPos)
+        self.action = nextMove.value
+        print("go to")
+
+    def escape(self, point):
+        nextPos = self.getNextPositionToTarget(point)
+        nextMove = utility.get_direction(self.my_position, nextPos)
+        self.action = nextMove.value
 
     def convert_bombs(self, bomb_map):
         '''Flatten outs the bomb array'''
@@ -306,7 +331,7 @@ class RandomAgent(BaseAgent):
           if thisDist < closestDist:
             closestDist = thisDist
             closestPos = position
-        #print("clostestPos: ", closestPos, " my pos: ", self.my_position)
+        print("clostestPos: ", closestPos, " my pos: ", self.my_position)
         return closestPos
 
     def getValidPositions(self):
@@ -384,8 +409,9 @@ class RandomAgent(BaseAgent):
         return ret
 
     @staticmethod
-    def _djikstra(board, my_position, bombs, enemies, depth=None, exclude=None):
-        assert (depth is not None)
+    def _djikstra(board, my_position, bombs, enemies, can_kick, depth=None, exclude=None):
+        if depth is None:
+            depth = 10
 
         if exclude is None:
             exclude = [

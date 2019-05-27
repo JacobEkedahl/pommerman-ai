@@ -45,7 +45,7 @@ class RandomAgent(BaseAgent):
         self.root.children[1].children = [Node(func = self.isNearToEnemy), Node(func = self.canPlaceBombs), Node(func = self.placeBomb)]
         self.root.children[2].children = [Node(func = self.needsPowerUp), Node(typ = FALLBACK)]
         self.root.children[3].children = [Node(func = self.observingEnemy) , Node(func=self.goNearEnemy)]
-        self.root.children[4].children = [Node(func = self.test)]
+        self.root.children[4].children = [Node(func = self.random)]
 
         self.root.children[0].children[1].children = [Node(func = self.goToSafestValid), Node(typ = SEQUENCE)]
         self.root.children[0].children[1].children[1].children = [Node(func = self.canKick), Node(func = self.kickBomb)]
@@ -58,9 +58,6 @@ class RandomAgent(BaseAgent):
     ##############
     # Tree Funcs #
     ##############
-    def test(self):
-        self.goTo((5,5))
-        return True
 
     #simple and bad attack
     def isNearToEnemy(self):
@@ -77,6 +74,8 @@ class RandomAgent(BaseAgent):
         print("kickBomb")
         for bomb in self.bombs:
             print("Bomb pos: ", bomb['position'])
+            print("(",self.board[max(x-1,0)][y],self.board[min(x+1,10)][y],")")
+            print("(",self.board[x][max(y-1,0)],self.board[x][min(y+1,10)],")")
             self.goTo(bomb['position'])
             x, y = bomb['position']
             if (self.board[max(x-1,0)][y] == 0 and self.board[min(x+1,10)][y]) or (self.board[x][max(y-1,0)] and self.board[x][min(y+1,10)]):

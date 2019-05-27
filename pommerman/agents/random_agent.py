@@ -81,7 +81,6 @@ class RandomAgent(BaseAgent):
 
     def canPlaceBombs(self):
         return self.ammo > 0
-        #return len(self.my_bombs) < self.ammo
 
     def random(self):
         valid_actions = self.getValidDirections(self.my_position)
@@ -185,9 +184,22 @@ class RandomAgent(BaseAgent):
 
     def placeBomb(self):
         print("placeBomb")
-        self.action = BOMB
-        self.addBomb()
-        return True
+        x, y = self.my_position
+        for position in self.items.get(constants.Item.Passage):
+            if self.dist[position] == np.inf:
+                continue
+
+            # We can reach a passage that's outside of the bomb strength.
+            if self.dist[position] > self.blast_strength:
+                self.action = BOMB
+                return True
+
+            # We can reach a passage that's outside of the bomb scope.
+            position_x, position_y = position
+            if position_x != x and position_y != y:
+                self.action = BOMB
+                return True
+        return False
 
     def goNearestWall(self):
         print("goNearestWall")

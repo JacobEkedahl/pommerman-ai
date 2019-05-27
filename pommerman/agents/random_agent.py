@@ -112,7 +112,6 @@ class RandomAgent(BaseAgent):
 
     def goNearEnemy(self):
         print("goNearEnemy")
-        return False
         for enemie in self.enemies:
             pos = self.items.get(enemie)
             if pos != None:

@@ -157,7 +157,7 @@ class RandomAgent(BaseAgent):
             return False
 
     def goNearestPowerUp(self):
-        print("goNearestPowerUp")
+        #print("goNearestPowerUp")
         self.goTo(self.target_powerup)
         return True
 
@@ -433,9 +433,10 @@ class RandomAgent(BaseAgent):
     @staticmethod
     def _filter_invalid_directions(board, my_position, directions, enemies, deadly_positions):
         ret = []
-        print("is in deadly pos: ", my_position, ", deadly_pos: ", deadly_positions)
         for direction in directions:
             position = utility.get_next_position(my_position, direction)
+            if position in deadly_positions:
+                print("DIRECTION ", direction, " not valid position")
             if utility.position_on_board(
                     board, position) and utility.position_is_passable(
                         board, position, enemies) and position not in deadly_positions and not utility.position_is_flames(board, position):

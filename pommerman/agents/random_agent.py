@@ -69,7 +69,7 @@ class RandomAgent(BaseAgent):
             if pos == None:
                 continue
             if self.dist[pos[0]] <= 2:
-                print("will attack: ", enemie, ", my friend is: ", self.teammate)
+                #print("will attack: ", enemie, ", my friend is: ", self.teammate)
                 return True
         return False
 
@@ -90,9 +90,10 @@ class RandomAgent(BaseAgent):
 
     def random(self):
         valid_actions = self.getValidDirections(self.my_position)
-        if valid_actions = []:
+        if not valid_actions:
+            print("RANDOM STOP")
             self.action = STOP
-            return True
+            return
         self.action = random.choice(valid_actions).value
         print("RANDOM", self.action)
         return True
@@ -324,7 +325,7 @@ class RandomAgent(BaseAgent):
         ret = []
         for bomb in self.bombs:
             if bomb['life_left'] <= 1:
-                ret.append(self.getInvalidPosition_frombomb(bomb))
+                ret.extend(self.getInvalidPosition_frombomb(bomb))
 
         return ret
 
@@ -372,7 +373,7 @@ class RandomAgent(BaseAgent):
             closestDist = thisDist
             closestPos = position
 
-        print("clostestPos: ", closestPos, " my pos: ", self.my_position, " no valid: ", len(valid_positions))
+        #print("clostestPos: ", closestPos, " my pos: ", self.my_position, " no valid: ", len(valid_positions))
         return closestPos
 
     def getValidPositions(self):

@@ -308,8 +308,8 @@ class RandomAgent(BaseAgent):
     def goTo(self,point):
         nextPos = self.getNextPositionToTarget(point)
         if self.will_it_explode(nextPos) or self.dist[nextPos] == np.inf:
-                self.action = STOP
-                return
+            self.random()
+            return
         nextMove = utility.get_direction(self.my_position, nextPos)
         self.action = nextMove.value
 
@@ -319,7 +319,7 @@ class RandomAgent(BaseAgent):
         will next position guarantee kill me?
         if my currentposition will kill me, go to any safe square next move, else stay put
         '''
-        if self.will_it_explode(nextPos):
+        if self.will_it_explode(nextPos) or self.dist[nextPos] == np.inf:
             if not self.will_it_explode(self.my_position):
                 self.action = STOP
                 return
@@ -340,14 +340,6 @@ class RandomAgent(BaseAgent):
                 deadly_positions = self.getInvalidPosition_frombomb(bomb)
                 if point in deadly_positions:
                     return True
-
-    def get_non_valid_positions(self):
-        ret = []
-        for bomb in self.bombs:
-            if bomb['life_left'] <= 1:
-                ret.extend(self.getInvalidPosition_frombomb(bomb))
-
-        return ret
 
     def convert_bombs(self, bomb_map):
         '''Flatten outs the bomb array'''
@@ -376,7 +368,7 @@ class RandomAgent(BaseAgent):
             constants.Action.Right, constants.Action.Up, constants.Action.Down
         ]
         valid_directions = self._filter_invalid_directions(
-            self.board,pos, directions, self.players, self.get_non_valid_positions())
+            self.board,pos, directions, self.players, self.getInValidPositions(self.bombs))
 
         valid_directions = self._filter_recently_visited(
             valid_directions, self.my_position, self._recently_visited_positions)

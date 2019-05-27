@@ -33,7 +33,7 @@ class RandomAgent(BaseAgent):
         self.collectObs(obs) #has to before tick
         self.root.tick()
         self.updateVisited() #has to be after tick
-        print(self.action)
+        self.identifyPoint()
         return self.action
 
     ##########
@@ -62,15 +62,21 @@ class RandomAgent(BaseAgent):
 
     def identifyPoint(self):
         point = None
+        clean = True
         for x in range(0,10):
             for y in range(0,10):
                 if self.board[x][y] not in [0,3,4,10,11,12,13]:
                     continue
                 for i in range(1,7):
-                    if x+i > 10 or y+i>10:
-                        continue
-                    if self.board[x+1][y] not in [0,3,4,10,11,12,13] and self.board[x][y+1] not in [0,3,4,10,11,12,13]:
-                        continue
+                    if x+i  not in range(0,10) or y+i not in range(0,10):
+                        clean = False
+                        break
+                    if self.board[x+i][y] not in [0,3,4,10,11,12,13] and self.board[x][y+i] not in [0,3,4,10,11,12,13]:
+                        clean = False
+            if clean:
+                point = (x,y)
+            clean = True
+        print(point)
 
                     
     #simple and bad attack
@@ -132,7 +138,7 @@ class RandomAgent(BaseAgent):
     
     def needsPowerUp(self):
         if self.obs['can_kick'] == True and self.ammo > 1:
-            return False
+            return True#False
         return True
 
     def powerUpNearAndReachable(self):
@@ -280,7 +286,6 @@ class RandomAgent(BaseAgent):
 
     def setTargetPowerUp(self, targets):
         currentDist = 99
-
         for target in targets:
             dist = self.dist[target]
             if dist < currentDist:

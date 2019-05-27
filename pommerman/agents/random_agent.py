@@ -293,10 +293,10 @@ class RandomAgent(BaseAgent):
 
     def goTo(self,point):
         nextPos = self.getNextPositionToTarget(point)
-        if self.will_it_explode(nextPos) or self.dist[nextPos] == np.inf:
-            self.random()
-            return
         nextMove = utility.get_direction(self.my_position, nextPos)
+        if utility.get_next_position(self.my_position, nextMove) in self.getInValidPositions(self.bombs) and self.my_position not in self.getInValidPositions(self.bombs):
+            nextMove = constants.Action.Stop
+            print("xx",nextMove)
         self.action = nextMove.value
 
     def escape(self, point):

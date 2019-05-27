@@ -178,9 +178,9 @@ class RandomAgent(BaseAgent):
     def goToSafestValid(self):
         #print("goToSafestValid")
         point = self.getSafestValid()
-        self.escape(point)
         if point == None:
             return False
+        self.escape(point)
         return True
 
     def placeBomb(self):
@@ -226,21 +226,23 @@ class RandomAgent(BaseAgent):
     def getNextPositionToTarget(self, position):
         target_pos = None
 
-        if self.dist[position] == np.inf:
+        if self.dist[position] is np.inf:
             print("this pos not in dist: ", position)
             closestDist = 99
             for pos in self.dist:
-                dist = self._distance(pos, position)
-                if dist < closestDist:
-                    closestDist = dist
-                    target_pos = pos
+                if self.dist[pos] is not np.inf:
+                    dist = self._distance(pos, position)
+                    print("pos: ", pos, ", dist: ", dist)
+                    if dist < closestDist:
+                        closestDist = dist
+                        target_pos = pos
         else:
             target_pos = position
 
 
-        print(target_pos, " prev:", self.prev[target_pos])
+        print(target_pos, " prev:", self.prev[target_pos], " my pos: ", self.my_position, ", dist: ", self.dist[target_pos])
 
-        res = None
+        res = target_pos
         while target_pos != self.my_position:
             if target_pos != self.my_position:
                 res = target_pos
@@ -331,7 +333,8 @@ class RandomAgent(BaseAgent):
           if thisDist < closestDist:
             closestDist = thisDist
             closestPos = position
-        print("clostestPos: ", closestPos, " my pos: ", self.my_position)
+
+        print("clostestPos: ", closestPos, " my pos: ", self.my_position, " no valid: ", len(valid_positions))
         return closestPos
 
     def getValidPositions(self):

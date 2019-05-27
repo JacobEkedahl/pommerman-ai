@@ -74,12 +74,9 @@ class RandomAgent(BaseAgent):
         print("kickBomb")
         for bomb in self.bombs:
             x, y = bomb['position']
-            print("Bomb pos: ", bomb['position'])
-            print("(",self.board[max(x-1,0)][y],self.board[min(x+1,10)][y],")")
-            print("(",self.board[x][max(y-1,0)],self.board[x][min(y+1,10)],")")
-            self.goTo(bomb['position'])
-            if (self.board[max(x-1,0)][y] == 0 and self.board[min(x+1,10)][y] == 0) or (self.board[x][max(y-1,0)] == 0 and self.board[x][min(y+1,10)] == 0):
-                print(" Can kick.")
+            if (self.board[max(x-1,0)][y] in [0,4,10,11,12,13] and self.board[min(x+1,10)][y] in [0,4,10,11,12,13]) or (self.board[x][max(y-1,0)] in [0,4,10,11,12,13] and self.board[x][min(y+1,10)] in [0,4,10,11,12,13]):
+                self.goTo(bomb['position'])
+                return True
         return True
 
     def canPlaceBombs(self):

@@ -392,10 +392,6 @@ class RandomAgent(BaseAgent):
             deadlyPositions.append((x,y+i))
             deadlyPositions.append((x,y-i))
             deadlyPositions.append((x,y))
-        for x in range(0,10):
-            for y in range(0,10):
-                if self.board[x][y] == 4:
-                    deadlyPositions.append((x,y))
         return deadlyPositions
 
     def getInValidPositions(self, bombs):

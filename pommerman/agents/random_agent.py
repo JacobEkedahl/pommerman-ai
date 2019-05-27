@@ -69,6 +69,7 @@ class RandomAgent(BaseAgent):
             if pos == None:
                 continue
             if self.dist[pos[0]] <= 2:
+                print("will attack: ", enemie, ", my friend is: ", self.teammate)
                 return True
         return False
 
@@ -85,12 +86,15 @@ class RandomAgent(BaseAgent):
         return True
 
     def canPlaceBombs(self):
-        print("can place: ", self.ammo - len(self.my_bombs))
         return len(self.my_bombs) < self.ammo
 
     def random(self):
-        print("RANDOM")
-        self.action = random.choice(self.getValidDirections(self.my_position)).value
+        valid_actions = self.getValidDirections(self.my_position)
+        if valid_actions = []:
+            self.action = STOP
+            return True
+        self.action = random.choice(valid_actions).value
+        print("RANDOM", self.action)
         return True
 
     def observingEnemy(self):
@@ -153,7 +157,7 @@ class RandomAgent(BaseAgent):
             return False
 
     def goNearestPowerUp(self):
-        #print("goNearestPowerUp")
+        print("goNearestPowerUp")
         self.goTo(self.target_powerup)
         return True
 
@@ -177,7 +181,7 @@ class RandomAgent(BaseAgent):
 
     #go to closest safe position
     def goToSafestValid(self):
-        #print("goToSafestValid")
+        print("goToSafestValid")
         point = self.getSafestValid()
         if point == None:
             return False
@@ -226,9 +230,6 @@ class RandomAgent(BaseAgent):
         self.items, self.dist, self.prev = self._djikstra(
             self.board, self.my_position, self.bombs, self.players, self.obs['can_kick'], depth=10)
 
-
-
-        print("msg: ", self.message)
         #print("msg: ", self.message, ", teammate: " , self.teammate, ", enemies: ", self.enemies)
         self.updateMyBombs()
         return
@@ -319,6 +320,14 @@ class RandomAgent(BaseAgent):
                 if point in deadly_positions:
                     return True
 
+    def get_non_valid_positions(self):
+        ret = []
+        for bomb in self.bombs:
+            if bomb['life_left'] <= 1:
+                ret.append(self.getInvalidPosition_frombomb(bomb))
+
+        return ret
+
     def convert_bombs(self, bomb_map):
         '''Flatten outs the bomb array'''
         ret = []
@@ -346,10 +355,11 @@ class RandomAgent(BaseAgent):
             constants.Action.Right, constants.Action.Up, constants.Action.Down
         ]
         valid_directions = self._filter_invalid_directions(
-            self.board,pos, directions, self.players)
+            self.board,pos, directions, self.players, self.get_non_valid_positions())
 
         valid_directions = self._filter_recently_visited(
             valid_directions, self.my_position, self._recently_visited_positions)
+
         return valid_directions
 
     def getSafestValid(self):
@@ -420,13 +430,14 @@ class RandomAgent(BaseAgent):
         return abs(y_2 - y_1) > depth or abs(x_2 - x_1) > depth
 
     @staticmethod
-    def _filter_invalid_directions(board, my_position, directions, enemies):
+    def _filter_invalid_directions(board, my_position, directions, enemies, deadly_positions):
         ret = []
+        print("is in deadly pos: ", my_position, ", deadly_pos: ", deadly_positions)
         for direction in directions:
             position = utility.get_next_position(my_position, direction)
             if utility.position_on_board(
                     board, position) and utility.position_is_passable(
-                        board, position, enemies):
+                        board, position, enemies) and position not in deadly_positions and not utility.position_is_flames(board, position):
                 ret.append(direction)
         return ret
 

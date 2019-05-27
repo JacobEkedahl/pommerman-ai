@@ -403,10 +403,16 @@ class RandomAgent(BaseAgent):
             deadlyPositions.append((x,y))
         return deadlyPositions
 
+
     def getInValidPositions(self, bombs):
         deadlyPositions = []
         for bomb in bombs:
             deadlyPositions.extend(self.getInvalidPosition_frombomb(bomb))
+
+        for pos in self.dist:
+            if self.dist[pos] == np.inf and pos not in deadlyPositions:
+                deadlyPositions.append(pos)
+                
         return deadlyPositions
 
     ###############

@@ -290,8 +290,8 @@ class RandomAgent(BaseAgent):
 
     def goTo(self,point):
         nextPos = self.getNextPositionToTarget(point)
-        if nextPos in self.getInValidPositions(self.bombs) and self.my_position not in self.getInValidPositions(self.bombs):
-            self.action = STOP
+        if self.will_it_explode(nextPos) or self.dist[nextPos] == np.inf:
+            self.random()
             return
         nextMove = utility.get_direction(self.my_position, nextPos)
         self.action = nextMove.value
@@ -392,10 +392,14 @@ class RandomAgent(BaseAgent):
                     ret.append(position)
         return ret
 
+    def life_left(self, position):
+        return ""
+
     def getInvalidPosition_frombomb(self, bomb):
         deadlyPositions = []
         for i in range(0,bomb['blast_strength']):
             x,y = bomb['position']
+            life_left = bomb['life_left']
             deadlyPositions.append((x+i,y))
             deadlyPositions.append((x-i,y))
             deadlyPositions.append((x,y+i))

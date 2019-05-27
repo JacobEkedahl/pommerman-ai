@@ -60,6 +60,19 @@ class RandomAgent(BaseAgent):
     # Tree Funcs #
     ##############
 
+    def identifyPoint(self):
+        point = None
+        for x in range(0,10):
+            for y in range(0,10):
+                if self.board[x][y] not in [0,3,4,10,11,12,13]:
+                    continue
+                for i in range(1,7):
+                    if x+i > 10 or y+i>10:
+                        continue
+                    if self.board[x+1][y] not in [0,3,4,10,11,12,13] and self.board[x][y+1] not in [0,3,4,10,11,12,13]:
+                        continue
+
+                    
     #simple and bad attack
     def isNearToEnemy(self):
         for enemie in self.enemies:
@@ -80,7 +93,7 @@ class RandomAgent(BaseAgent):
             print("(",self.board[x][max(y-1,0)],self.board[x][min(y+1,10)],")")
             if (self.board[max(x-1,0)][y] in [0,4,10,11,12,13] and self.board[min(x+1,10)][y] in [0,4,10,11,12,13]) or (self.board[x][max(y-1,0)] in [0,4,10,11,12,13] and self.board[x][min(y+1,10)] in [0,4,10,11,12,13]):
                 print(" canKick.")
-                self.goTo(bomb['position'])
+                self.escape(bomb['position'])
         return True
 
     def canPlaceBombs(self):
@@ -295,7 +308,7 @@ class RandomAgent(BaseAgent):
     def goTo(self,point):
         nextPos = self.getNextPositionToTarget(point)
         if self.will_it_explode(nextPos) or self.dist[nextPos] == np.inf:
-                self.random()
+                self.action = STOP
                 return
         nextMove = utility.get_direction(self.my_position, nextPos)
         self.action = nextMove.value
